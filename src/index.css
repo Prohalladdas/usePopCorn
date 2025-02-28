@@ -43,8 +43,8 @@ body {
 
 .main {
   margin-top: 2.4rem;
-  /* height: calc(100vh - 7.2rem - 3 * 2.4rem); */
-  min-height: 77vh;
+  height: calc(100vh - 7.2rem - 3 * 2.4rem);
+  /* min-height: 77vh; */
   display: flex;
   gap: 2.4rem;
   justify-content: center;
@@ -55,8 +55,11 @@ body {
   max-width: 42rem;
   background-color: var(--color-background-500);
   border-radius: 0.9rem;
-  /* overflow: scroll; */
+  overflow: scroll;
   position: relative;
+
+  scrollbar-width: thin;
+  scrollbar-color: #888 transparent;
 }
 
 .loader {
