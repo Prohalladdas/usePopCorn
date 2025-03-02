@@ -50,7 +50,7 @@ const tempWatchedData = [
 
 const KEY = "7ac95d6d";
 export default function App() {
-  const [query, setQuery] = useState("your name");
+  const [query, setQuery] = useState("");
 
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
@@ -71,14 +71,17 @@ export default function App() {
   function handleDeleteWatched(id) {
     setWatched((watched) => watched.filter((movie) => movie.imdbID !== id));
   }
+
   useEffect(
     function () {
+      const controller = new AbortController();
       async function fetchMovies() {
         try {
           setisLoading(true);
           setError("");
           const res = await fetch(
-            `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`
+            `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
+            { signal: controller.signal }
           );
 
           if (!res.ok)
@@ -88,9 +91,12 @@ export default function App() {
           if (data.Response === "False") throw new Error("Movie not found");
 
           setMovies(data.Search);
+          setError("");
         } catch (err) {
-          console.error(err.message);
-          setError(err.message);
+          if (err.name !== "AbortError") {
+            console.log(err.message);
+            setError(err.message);
+          }
         } finally {
           setisLoading(false);
         }
@@ -100,7 +106,13 @@ export default function App() {
         setError("");
         return;
       }
+
+      handleBackMovie();
       fetchMovies();
+
+      return function () {
+        controller.abort();
+      };
     },
     [query]
   );
@@ -287,22 +299,6 @@ function MovieDetails({ selectedId, onHandleBack, onAddWatched, watched }) {
     Genre: genre,
   } = movie;
 
-  useEffect(
-    function () {
-      async function getMovieDetails() {
-        setisLoading(true);
-        const res = await fetch(
-          `http://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`
-        );
-        const data = await res.json();
-        setMovie(data);
-        setisLoading(false);
-      }
-      getMovieDetails();
-    },
-    [selectedId]
-  );
-
   function handleAdd() {
     const newWatchedMovie = {
       imdbID: selectedId,
@@ -319,11 +315,45 @@ function MovieDetails({ selectedId, onHandleBack, onAddWatched, watched }) {
 
   useEffect(
     function () {
+      function callback(e) {
+        if (e.code === "Escape") {
+          onHandleBack();
+        }
+      }
+
+      document.addEventListener("keydown", callback);
+
+      return function () {
+        document.removeEventListener("keydown", callback);
+      };
+    },
+    [onHandleBack]
+  );
+
+  useEffect(
+    function () {
+      async function getMovieDetails() {
+        setisLoading(true);
+        const res = await fetch(
+          `http://www.omdbapi.com/?apikey=${KEY}&i=${selectedId}`
+        );
+        const data = await res.json();
+        setMovie(data);
+        setisLoading(false);
+      }
+      getMovieDetails();
+    },
+    [selectedId]
+  );
+
+  useEffect(
+    function () {
       if (!title) return;
       document.title = `Movie | ${title}`;
 
       return function () {
         document.title = "usePopCorn";
+        // console.log(`Clean up effect for movie ${title}`);
       };
     },
     [title]
